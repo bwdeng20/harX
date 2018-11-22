@@ -1,0 +1,9 @@
+# Python:
+*.py[cod]
+build/
+
+.idea/
+checkpoints/
+logs/
+drafts/
+Comparison/
