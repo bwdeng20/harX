@@ -57,14 +57,21 @@ class MX(nn.Module):
         print("=> Ready at (epoch%d,loss%f,acc%f)" % (epoch, loss, acc))
         return epoch, batches, loss, acc
 
+    def predict(self, x):
+        # for the most common classification tasks, u can overwrite this function to satisfy your project
+        self.eval()
+        outputs = self.forward(x)
+        return torch.argmax(torch.softmax(outputs, dim=1), 1)
+
 
 class JY15CNN(MX):
     """
     Model proposed in this paper
-
+    -----------------------------------------------------------------------------------------
     Jiang, W., Yin, Z., 2015.
     Human activity recognition using wearable sensors by deep convolutional neural networks,
     in: MM, ACM. pp. 1307–1310.
+    -----------------------------------------------------------------------------------------
 
     NOTICE: In the original paper, the input Activity Image is 36 * 68. In contrast, JY15CNN2,3
             did not inherit this manner as UCI-HAR(SmartPhone) Data set consists of fixed
