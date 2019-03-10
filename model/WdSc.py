@@ -1,5 +1,4 @@
 import numpy as np
-from utils.datasets import norm3d
 
 
 class PeakDetector(object):
@@ -64,7 +63,7 @@ class PeakDetector(object):
         return self._naive_peaks(acc_norm)
 
 
-class RobustPD(PeakDetector):
+class GuPD(PeakDetector):
     """
     Step counting and walking detection Model proposed in the  paper
     -----------------------------------------------------------------------------------------
@@ -92,7 +91,7 @@ class RobustPD(PeakDetector):
     """
 
     def __init__(self, K=15, Tmin=0.3, Tmax=1, sim_i=-5, M=2, N=4, sigma_var=0.7):
-        super(RobustPD, self).__init__(K)
+        super(GuPD, self).__init__(K)
         self.Tmin = Tmin
         self.Tmax = Tmax
         self.sim_i = -sim_i
@@ -117,7 +116,7 @@ class RobustPD(PeakDetector):
         """
          To compute 'sim_i' for each acc norm peak, we need motions corresponding to each peak.
          It's convenient to dispatch one peak and its following recordings into one motion, meaning
-         the peak between two kinds of motions will be regarded as the forgoing one.
+         the peak slicing two kinds of motions will be regarded as the second one.
         :param s: a sequence comprising activity labels for each sample point with the same length
                  as our acc norm sequence.
 
@@ -160,8 +159,8 @@ class RobustPD(PeakDetector):
         # check if m_i and m_(i+2) is walking state
         idx = 0
         while idx < len(peak_motions) - 2:
-            if peak_motions[idx] != 0 or peak_motions[idx + 2] != 0:  # assume 0 marks walking state
-                raw_sims[idx] = float('-inf')
+            if peak_motions[idx] == 0 or peak_motions[idx + 2] == 0:  # assume 0 marks walking state
+                raw_sims[idx] = -10000
             idx += 1
 
         self.state['sim'] = raw_sims
@@ -210,30 +209,6 @@ class RobustPD(PeakDetector):
             i += 1
         self.state['Ci'] = C
         return C
-        # while i < N:
-        #     # all peak indices ahead of the i-th peak plus the following 2 peak indices
-        #     indices = peak_idx[:i + 3]
-        #     vars = np.zeros(indices.size - 1)
-        #     if len(indices) >= M:
-        #         for j in range(len(indices) - 1):
-        #             head = indices[j]
-        #             tail = indices[j + 1]
-        #             acc_window = acc[head, tail]
-        #             vars[j] = np.var(acc_window)
-        #     if np.sum(vars > sigma_var) > M:
-        #         C[i] = 1
-        #     i += 1
-        # while N <= i < len(peak_idx) - 1:
-        #     indices = peak_idx[i - N + 1:i + 3]
-        #     vars = np.zeros(indices.size - 1)
-        #     for j in range(len(indices) - 1):
-        #         head = indices[j]
-        #         tail = indices[j + 1]
-        #         acc_window = acc[head, tail]
-        #         vars[j] = np.var(acc_window)
-        #     if np.sum(vars > sigma_var) > M:
-        #         C[i] = 1
-        #     i += 1
 
     def __call__(self, data):
         """
@@ -271,6 +246,6 @@ if __name__ == "__main__":
     print(type(peaks[0]))
     print(sum(peaks))
 
-    st2 = RobustPD()
+    st2 = GuPD()
     # test _periodicity
     st2(seq)
