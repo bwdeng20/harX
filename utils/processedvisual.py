@@ -95,8 +95,8 @@ if __name__ == "__main__":
     ts = seq[0]
     acc_norm = norm3d(seq[1])
     # test pass an axes instance into collect axes(subplots)
-    axes = plt.gca()
-    visual_pk(ts, acc_norm, info, peaks, axes)
+    axes_ = plt.gca()
+    visual_pk(ts, acc_norm, info, peaks, axes_)
     plt.show()
 
     # test no passing axes instance to\\\
