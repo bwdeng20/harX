@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     c_mat = coach.evaluations['confusionMatrix']
     print(c_mat)
-    from utils.ProcessedVisual import visual_cm
+    from utils.processedvisual import visual_cm
 
     visual_cm(coach.evaluations['confusionMatrix'], classes=testset.activity.values())
     print(c_mat.sum())
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     coach.evaluate(testloader)
     c_mat = coach.evaluations['confusionMatrix']
     print(c_mat)
-    from utils.ProcessedVisual import visual_cm
+    from utils.processedvisual import visual_cm
 
     visual_cm(coach.evaluations['confusionMatrix'], classes=testset.activity.values())
     print(c_mat.sum())
