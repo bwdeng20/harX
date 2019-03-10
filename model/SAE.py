@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from model.MoDeX import MX
-import torch.optim as optim
+import torch.optim as optimzoo
 from tqdm import tqdm
-
+from model.Loss import SpKL,L2norm
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -43,21 +43,16 @@ class SA(MX):
         return x, a_hidden
 
 
-def SpKL(output, target, a2, beta=1, rho=0.05):
-    quadratic = torch.pow(output - target, 2)
-    rho_hat = torch.mean(a2, dim=0)
-    rho = rho * torch.ones(a2.shape[1])
-    KLs = rho * torch.log(rho / rho_hat) + (1 - rho) * torch.log((1 - rho) / (1 - rho_hat))
-    loss = torch.sum(quadratic) / 0.5 + beta * torch.sum(KLs)
-    return loss
+def str2optimizer(optimizer_name):
+    """
 
-
-def L2norm(output, target, theta, lbda=0.05):
-    NL = theta.shape[1]
-    quadratic = torch.pow(output - target, 2)
-    L2 = theta.mm(theta.t())
-    J = torch.sum(quadratic) / (2 * NL) + lbda * L2 / 2
-    return J
+    :param optimizer_name: the name of one optimizer
+    :return: the optimizer class implemented in Pytorch
+    """
+    if hasattr(optimzoo, optimizer_name):
+        return getattr(optimzoo, optimizer_name)
+    else:
+        raise Exception("Unsupported this optimizer: %s!" % optimizer_name)
 
 
 class SATrainer(object):
@@ -67,12 +62,6 @@ class SATrainer(object):
         self.lr = lr
         self.optimiz = optimiz
 
-    def _reflect(self, type, params):
-        if type is 'SGD':
-            return optim.SGD(params, self.lr)
-        if type is 'Adam':
-            return optim.Adam(params, self.lr)
-
     def _fit1ae(self, idx, trainloader, epoch):
         # no grad for the past layers
         for param in self.model.net[:idx].paramters():
@@ -80,7 +69,7 @@ class SATrainer(object):
 
             # only optimize the idx-th auto encoder
         params = self.model.net[idx].parameters()
-        optimizer = self._reflect(self.optimiz, params)
+        optimizer = str2optimizer(self.optimiz)(params, self.lr)
         re_cnstrc_err = 0
         for i, data in tqdm(enumerate(trainloader)):
             inputs, _ = data  # to train auto encoder only needs seq itself.
@@ -109,7 +98,7 @@ class SATrainer(object):
                 param.requires_grad = False
 
             params = self.model.net[-1].parameters()
-            optimizer = self._reflect(self.optimiz, params)
+            optimizer = str2optimizer(self.optimiz)(params, self.lr)
             # get the reference to weight of the regression layer
             theta = list(self.model.net[-1].parameters())[0]
 
