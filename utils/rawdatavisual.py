@@ -88,7 +88,7 @@ def plot_1trace(data, gt_info=None):
 def plot_1dim(ts, seq, Fs, dim, No, dtype='acc'):
     plt.subplot("33%d" % No)
     plt.plot(ts, seq)
-    if dim==2:
+    if dim == 2:
         plt.xlabel('Time (s)')
     plt.ylabel('Acceleration (g)')
     plt.title(dtype + str(dim))
@@ -117,11 +117,9 @@ def plot_amtn(data, gt_info, dtype='acc'):
         raise TypeError("Unsupported sensor type")
 
     ts, accs, gyros = data['sensor_readings']  # (ts, accs, gyros)}
-    info_keys = ['subject', 'age', 'height', 'weight', 'activity', 'trial']
-
     Fs = gt_info['Fs']
     for axis, No in enumerate(range(0, 9, 3)):
-        plot_1dim(ts, accs[:,axis], Fs, axis, No+1, dtype)
+        plot_1dim(ts, accs[:, axis], Fs, axis, No + 1, dtype)
     plt.suptitle('subject{},age{},height{},weight{}, activity={}'.format(
         gt_info['subject'], gt_info['age'], gt_info['height'], gt_info['weight'], gt_info['activity']
     ))
@@ -155,7 +153,7 @@ if __name__ == "__main__":
 
     data = parseTrace(trace)
 
-    #plot_1trace(data)
+    # plot_1trace(data)
     # test plot_1trace with gt_info
     from utils.datasets import WalkDetectDataset
 
@@ -168,10 +166,9 @@ if __name__ == "__main__":
     # test Visual tools for USC-HAD data set
 
     from utils.datasets import USCHAD
-    had=USCHAD()
 
-    info_dict,data_dict=had[100]
-    plot_amtn(data_dict,info_dict)
+    had = USCHAD()
+
+    info_dict, data_dict = had[100]
+    plot_amtn(data_dict, info_dict)
     print("--------Tools for USC-HAD Ready--------")
-
-
