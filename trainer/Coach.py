@@ -68,6 +68,7 @@ class Coach(CoachBase):
         self.last_epoch = 0
         self.last_loss = 0.0  # the loss of last epoch
         self.last_acc = 0.0
+        self.best_acc = 0.0
         self.batches = 0  # the experienced batches
 
         self.optimizer = optimizer
@@ -75,8 +76,10 @@ class Coach(CoachBase):
         self.epochs = epochs
         self.lr = lr
 
+        if not os.path.exists(cpdir):
+            os.mkdir(cpdir)
         self.cpdir = cpdir
-        self.logdir = logdir + optimizer + ',lr=%5f,' % lr + loss
+        self.logdir = logdir + optimizer + '_lr=%5f_' % lr + loss
         self.writer = SummaryWriter(self.logdir)
         self.batches = 0
 
@@ -107,6 +110,7 @@ class Coach(CoachBase):
         else:
             loss_layer = self.loss
 
+        loss_layer.to(device)
         for epoch in range(self.last_epoch + 1, self.epochs + 1):
             epoch_loss = 0.0
             correct = 0.0
@@ -115,40 +119,41 @@ class Coach(CoachBase):
                 optimizer.zero_grad()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                ouputs = self.model(inputs)
-                predicted = torch.argmax(torch.softmax(ouputs, dim=1), 1)
+                outputs = self.model(inputs)
+                predicted = torch.argmax(torch.softmax(outputs, dim=1), 1)
                 correct += (torch.sum((labels - 1) == predicted)).item()
 
                 # compute loss, backward, and update parameters
-                loss = loss_layer(ouputs, labels - 1)
+                loss = loss_layer(outputs, labels - 1)
                 loss.backward()
                 optimizer.step()
 
                 self.batches += 1
                 batch_loss = loss.item() / batch_size
                 epoch_loss += loss.item()
-                if i % 20 == 19:  # print every 8 mini-batches
+                if i % 19 == 0:  # print every 20 mini-batches
                     print('[epoch %5d,mini-batch %5d] batch_loss: %.5f' %
-                          (epoch, i, batch_loss))
+                          (epoch, i + 1, batch_loss))
                 self.writer.add_scalar('Loss/batch', batch_loss, global_step=self.batches)
 
             # training information
             epoch_loss /= data_size
             epoch_acc = correct / data_size
-            is_best = epoch_acc > self.last_acc
+            is_best = epoch_acc > self.best_acc
+            if is_best:
+                self.best_acc = epoch_acc
+                self.model.save_weights(self.cpdir)  # actually the saved file is self.cpdir + model.name
+                for name, param in self.model.named_parameters():
+                    self.writer.add_histogram(name, param.data.cpu().numpy(), epoch)
+
+            self.last_acc = epoch_acc
             # save checkpoints if the accuracy improves
             self.model.save_checkpoint(epoch, self.batches, is_best,
                                        optimizer.state_dict(), epoch_loss, epoch_acc, self.cpdir)
 
             self.writer.add_scalar('Accuracy(train)', epoch_acc, global_step=epoch)
             self.writer.add_scalar('Loss/epoch', epoch_loss, global_step=epoch)
-
-            for name, param in self.model.named_parameters():
-                self.writer.add_histogram(name, param.data.cpu().numpy(), epoch)
-
             print("Epoch %5d, AvgLoss: %5f ,Accuracy: %5f" % (epoch, epoch_loss, epoch_acc))
-
-        self.model.save_weights(self.cpdir)  # actually the saved file is self.cpdir + model.name
 
     def resume(self, _train_loader, cp_file=None):
         """
@@ -176,13 +181,11 @@ class Coach(CoachBase):
         if isinstance(self.optimizer, str):
             self.optimizer = str2optimizer(self.optimizer)(params, self.lr)
         else:
-            # this case assumes u have passed parameters into optimizer instance out of this function
+            # this case assumes u have passed parameters into optimizer instance outside of this function
             pass
 
         self.last_epoch, self.batches, _, self.last_acc = self.model.load_checkpoint(self.optimizer, cp_file)
         self.fit(_train_loader)
-
-        pass
 
     def evaluate(self, _test_loader):
         data_size = len(_test_loader.dataset)
@@ -193,7 +196,7 @@ class Coach(CoachBase):
             loss_layer = str2loss(self.loss)()
         else:
             loss_layer = self.loss
-
+        loss_layer.to(device)
         LABEL = np.array([]).astype(np.int)
         PRED = np.array([]).astype(np.int)
 
@@ -202,10 +205,10 @@ class Coach(CoachBase):
                 inputs, labels = _sample['input'], _sample['label']
                 inputs = inputs.to(device)
                 labels = labels.to(device) - 1
-                ouputs = self.model(inputs)
-                predicted = torch.argmax(torch.softmax(ouputs, dim=1), 1)
+                outputs = self.model(inputs)
+                predicted = torch.argmax(torch.softmax(outputs, dim=1), 1)
                 correct += (torch.sum(labels == predicted)).item()
-                loss = loss_layer(ouputs, labels)
+                loss = loss_layer(outputs, labels)
                 total_loss += loss.item()
 
                 labels = labels.cpu().numpy().astype(np.int)
