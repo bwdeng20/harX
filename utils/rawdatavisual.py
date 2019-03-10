@@ -116,7 +116,7 @@ def plot_amtn(data, gt_info, dtype='acc'):
     if dtype not in ['acc', 'gyro']:
         raise TypeError("Unsupported sensor type")
 
-    ts, accs, gyros = data['sensor_readings']  # (ts, accs, gyros)}
+    ts, accs, gyros = data['input']  # (ts, accs, gyros)}
     Fs = gt_info['Fs']
     for axis, No in enumerate(range(0, 9, 3)):
         plot_1dim(ts, accs[:, axis], Fs, axis, No + 1, dtype)
