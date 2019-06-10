@@ -6,6 +6,7 @@ import torch.nn.modules.loss as losszoo
 import os
 import numpy as np
 from utils.evaluations import confusion_mat
+import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -41,7 +42,7 @@ def str2loss(loss_name):
         raise Exception("Unsupported Loss: %s !" % loss_name)
 
 
-def init_weights(layer):
+def xavier_init(layer):
     if type(layer) == nn.Conv2d:
         nn.init.xavier_normal_(layer.weight)
 
@@ -69,7 +70,7 @@ class Coach(CoachBase):
         self.last_loss = 0.0  # the loss of last epoch
         self.last_acc = 0.0
         self.best_acc = 0.0
-        self.batches = 0  # the experienced batches
+        self.batches = 0  # the experienced mini-batches
 
         self.optimizer = optimizer
         self.loss = loss
@@ -89,6 +90,8 @@ class Coach(CoachBase):
                             "confusionMatrix": None,
                             }
         if metrics:
+            # more metrics stored in a dictionary will be unpacked and combine with the default 4 metrics(i.e,
+            # accuracy, precision, recall, confusionMatrix )
             self.evaluations = {**self.evaluations, **metrics}
         pass
 
@@ -112,19 +115,22 @@ class Coach(CoachBase):
 
         loss_layer.to(device)
         for epoch in range(self.last_epoch + 1, self.epochs + 1):
+            begin = time.time()
             epoch_loss = 0.0
             correct = 0.0
             for i, spl in enumerate(_train_loader):
-                inputs, labels = spl['input'], spl['label']
                 optimizer.zero_grad()
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-                outputs = self.model(inputs)
+                inputs, labels, need_unpack = self.parse_sample(spl)
+                if need_unpack:
+                    outputs = self.model(*inputs)
+                else:
+                    outputs = self.model(inputs)
+
                 predicted = torch.argmax(torch.softmax(outputs, dim=1), 1)
-                correct += (torch.sum((labels - 1) == predicted)).item()
+                correct += (torch.sum(labels == predicted)).item()
 
                 # compute loss, backward, and update parameters
-                loss = loss_layer(outputs, labels - 1)
+                loss = loss_layer(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
@@ -137,6 +143,7 @@ class Coach(CoachBase):
                 self.writer.add_scalar('Loss/batch', batch_loss, global_step=self.batches)
 
             # training information
+            end = time.time()
             epoch_loss /= data_size
             epoch_acc = correct / data_size
             is_best = epoch_acc > self.best_acc
@@ -153,7 +160,7 @@ class Coach(CoachBase):
 
             self.writer.add_scalar('Accuracy(train)', epoch_acc, global_step=epoch)
             self.writer.add_scalar('Loss/epoch', epoch_loss, global_step=epoch)
-            print("Epoch %5d, AvgLoss: %5f ,Accuracy: %5f" % (epoch, epoch_loss, epoch_acc))
+            print("Epoch %5d, AvgLoss: %5f ,Accuracy: %5f, Elapsed:  %5f" % (epoch, epoch_loss, epoch_acc, end - begin))
 
     def resume(self, _train_loader, cp_file=None):
         """
@@ -202,10 +209,11 @@ class Coach(CoachBase):
 
         with torch.no_grad():
             for i, _sample in enumerate(_test_loader):
-                inputs, labels = _sample['input'], _sample['label']
-                inputs = inputs.to(device)
-                labels = labels.to(device) - 1
-                outputs = self.model(inputs)
+                inputs, labels, need_unpack = self.parse_sample(_sample)
+                if need_unpack:
+                    outputs = self.model(*inputs)
+                else:
+                    outputs = self.model(inputs)
                 predicted = torch.argmax(torch.softmax(outputs, dim=1), 1)
                 correct += (torch.sum(labels == predicted)).item()
                 loss = loss_layer(outputs, labels)
@@ -224,6 +232,28 @@ class Coach(CoachBase):
         self.evaluations['confusionMatrix'] = confusion_matrix
         self.evaluations['accuracy'] = correct / data_size
 
+    def parse_sample(self, _sample):
+        """
+        in some circumstances, the input would be multi-path, meaning some components will be feed into the model
+        at the beginning(the first entrance)  while u prefer to input the other components through other entrances
+        (at sometimes). Since a tuple instance can not be "to" 'device' directly, we unpacked the components before
+        transferring them into 'device'.
+        Example:
+                Ignatov CNN defined in .../harX/model/MoDeX.py/IgnatovCNN. This model concatenates some statistical
+                information(e.g, Mean,Standard Deviation) and the flattened hidden vector, thus the 'input' would be
+                a tuple instance which consists of two parts, the sensor reading vectors and the statistical feature
+                vectors. However, a tuple can't be transferring to 'device' so we need some parsing strategies.
+
+        :param _sample: a dictionary comprising 'input' and 'label'
+        :return: the parsed input elements and labels transferring to the 'device'(either GPU or CPU)
+        """
+        need_unpack = 0
+        if type(_sample['input']) == tuple or type(_sample['input']) == list:
+            need_unpack = 1
+            return tuple(elem.to(device) for elem in _sample['input']), _sample['label'].to(device) - 1, need_unpack
+        else:
+            return _sample['input'].to(device), _sample['label'].to(device) - 1, need_unpack
+
 
 if __name__ == "__main__":
     # test for Coach.fit() passed!
@@ -240,8 +270,8 @@ if __name__ == "__main__":
     print(sample['label'])
 
     jy15cnn22 = JY15CNN2(6)
-    jy15cnn22.apply(init_weights)
-    # NOTICE: to test resuming monitoring, please make sure that 'logdir' is the same as when you new a Coach
+    jy15cnn22.apply(xavier_init)
+    # NOTICE: to test resuming monitoring, please make sure that 'logdir' is the same as that when you new a Coach
     # class to resume! A resume example can be found at
     # Projects/integration_test/ResumeTest.py
     Coach = Coach(jy15cnn22, epochs=100, logdir=r'../logs/test_resuming_monitoring-')
