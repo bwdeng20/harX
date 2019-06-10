@@ -169,6 +169,6 @@ if __name__ == "__main__":
 
     had = USCHAD()
 
-    info_dict, data_dict = had[100]
+    info_dict, data_dict = had[10]
     plot_amtn(data_dict, info_dict)
     print("--------Tools for USC-HAD Ready--------")
