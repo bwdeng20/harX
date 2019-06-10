@@ -196,7 +196,7 @@ class ConvLstm(MX):
     conv4:  N * 64 * 112 * D
     permute:112 * N * (64*D)
     lstm1:  112 * N * 128(dropout=0.5)
-    lstm2:  112 * N * 128(dropout=0.5)
+    lstm2:  112 * N * 128(dropout=0.5)57
     slice:  N * 128
     output: N * C
     """
@@ -247,9 +247,9 @@ class IgnatovCNN(MX):
     All Strides are 1 and All Padding are 0 by default here.
     input: N x D(6) x 1 x S(usually128)
     conv1(relu): out_channel=196,filter=1 x 16, stride=1 x 1, padding=0 x 8("SAME" in Tensorflow version)
-    state:N x 196 x 1 x (128-16+2*8)
+    state:N x 196 x 1 x (128-16+2*8)/1+1
     maxpool: 1 x 4
-    state: N x 196 x 1 x  32
+    state: N x 196 x 1 x 32
     flatten & concat with feature vectors :
     state: N x (196*32+40)
     FC1(ReLu): 1024
@@ -274,7 +274,8 @@ class IgnatovCNN(MX):
         self.fc2 = nn.Linear(1024, C)
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, x, fea):
+    def forward(self, *x):
+        x, fea = x
         x = self.conv(x)
         x = F.relu(x)
         x = self.maxpool(x)
