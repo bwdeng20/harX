@@ -295,7 +295,7 @@ def parse_hapt_labels(path):
     with open(path, "r") as f:
         lines = f.readlines()
     lines = list(map(lambda s: s.strip("\n").strip(" ").split(" "), lines))
-    return np.array(lines, dtype=np.int32)
+    return np.array(lines, dtype=np.int64)
 
 
 def segment_idx(st_ets, segment_size):
@@ -344,13 +344,13 @@ def segment(raw_data_dir, des_dir, label_info, segment_size=128, transition=True
     segment_sts = segment_idx(st_ets, segment_size)
 
     x_train = np.empty((1, segment_size, 6), dtype=np.float64)
-    y_train = np.empty(1, dtype=np.int32)
+    y_train = np.empty(1, dtype=np.int64)
     feas_train = np.empty((1, fea_size), dtype=np.float64)
     x_test = np.empty((1, segment_size, 6), dtype=np.float64)
-    y_test = np.empty(1, dtype=np.int32)
+    y_test = np.empty(1, dtype=np.int64)
     feas_test = np.empty((1, fea_size), dtype=np.float64)
 
-    print(" ==> segmentation launches ... ")
+    print(" ==> No complete train and test set file detected. \n    ==> segmentation launches ... ")
     for e_id, p_id in tqdm(e_id_p_ids_unique):
         sample_idx = find_row_idx([e_id, p_id], e_id_p_ids)
         if e_id < 10:
@@ -392,7 +392,7 @@ def segment(raw_data_dir, des_dir, label_info, segment_size=128, transition=True
                 # (40,)
                 feature_window = extract_basic_features(acc_window[:, 0], acc_window[:, 1], acc_window[:, 2])
 
-                if p_id in test_pids:
+                if int(p_id) in test_pids:
                     x_test = np.concatenate([x_test, acc_gyro_window[np.newaxis, :]])
                     feas_test = np.concatenate([feas_test, feature_window[np.newaxis, :]])
                     y_test = np.append(y_test, label_winidow)
@@ -401,7 +401,7 @@ def segment(raw_data_dir, des_dir, label_info, segment_size=128, transition=True
                     feas_train = np.concatenate([feas_train, feature_window[np.newaxis, :]])
                     y_train = np.append(y_train, label_winidow)
 
-    print(r"\n ===>  saving the segmented data(as np.array) into '.npy' file \n")
+    print("\n ===>  saving the segmented data(as np.array) into '.npy' file \n")
     np.save(des_dir + "/x_train.npy", np.delete(x_train, 0, axis=0))
     np.save(des_dir + "/y_train.npy", np.delete(y_train, 0, axis=0))
     np.save(des_dir + "/fea_train.npy", np.delete(feas_train, 0, axis=0))
@@ -409,18 +409,23 @@ def segment(raw_data_dir, des_dir, label_info, segment_size=128, transition=True
     np.save(des_dir + "/x_test.npy", np.delete(x_test, 0, axis=0))
     np.save(des_dir + "/y_test.npy", np.delete(y_test, 0, axis=0))
     np.save(des_dir + "/fea_test.npy", np.delete(feas_test, 0, axis=0))
-    print(r"\n ===> all segmented data saved\n")
+    print("\n ===> all segmented data saved\n")
 
     return None
 
 
 class HAPT(Dataset):
-    def __init__(self, raw_data_dir="D:/DataSets/Activity_Recognition/SensorBased/HAPT Data Set/RawData",
+    def __init__(self,
+                 raw_data_dir="D:/DataSets/Activity_Recognition/SensorBased/HAPT Data Set",
                  des_dir=r"D:/WalkingTrajectoryEstimation/harX/data", train=1, float=32,
                  segment_size=128, transform=None, test_ids=(2, 4, 9, 10, 12, 13, 18, 20, 24),
                  posture_trans=True):
-        self.transform = transform
+        activity_label = raw_data_dir + "/activity_labels.txt"
+        with open(activity_label, "r") as f:
+            NoAcs = [line.strip().split(" ") for line in f.readlines()]
+            self.activity = {int(NoAc[0]): NoAc[1] for NoAc in NoAcs}
 
+        raw_data_dir = raw_data_dir + "/RawData"
         self.dir = raw_data_dir
         self.s = segment_size
         self.d_dir = des_dir
@@ -459,6 +464,8 @@ class HAPT(Dataset):
         elif float == 64:
             self.dtype = np.float64
 
+        self.transform = transform
+
     def check_segment_size(self):
         intervals = self.label_info[:, -1] - self.label_info[:, -2]
         if not np.all(intervals > 0):
@@ -485,9 +492,8 @@ class HAPT(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        sample = {"input": (self.x[idx]).astype(self.dtype),
-                  "label": self.y[idx],
-                  "fea": (self.fea[idx]).astype(self.dtype)}
+        sample = {"input": ((self.x[idx]).astype(self.dtype), (self.fea[idx]).astype(self.dtype)),
+                  "label": self.y[idx]}
         if self.transform:
             sample = self.transform(sample)
         return sample
@@ -522,7 +528,7 @@ def norm3d(data3d):
 if __name__ == "__main__":
     # test class HAPT
     hapt = HAPT()
-    inp, lab, fea = hapt[10]["input"], hapt[10]["label"], hapt[10]["fea"]
+    (inp, fea), lab = hapt[10]["input"], hapt[10]["label"]
     print(inp.shape, inp.dtype, "\n",
           lab, lab.dtype, "\n", fea.shape, fea.dtype)
     print("==> HAPT Class Ready!")
