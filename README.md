@@ -36,6 +36,8 @@ scipy
 torch             
 matplotlib
 ```
+
+
  ## Some Results
  You can show the data with some tools in `utils`. 
  
@@ -46,3 +48,11 @@ matplotlib
  
  `ActivityImage` proposed in [Human activity recognition using wearable sensors by deep convolutional neural networks](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
   ![](./imgs/4ActivityImages.png)
+  
+  A confusion matrix of one model's performance on UCI-HAR test dataset.
+  ![](./imgs/ConfusionMatrix.png)
+  
+  ## End
+This repository is writen when I began to use python for a project so it's not
+well organized and the code style is bad. You are welcome to reorganize it
+and do whatever you like. 
