@@ -3,16 +3,16 @@
 ## What's over here?
  Human activity recognition(HAR) based on sensor data and pedestrian dead reckoning(PDR) in PyTorch.
 
--[x] dataset readers(You need download raw data and provide the dataset path)
-    -[x] [UCI-HAR](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
-    -[x] [USC-HAD](http://sipi.usc.edu/had/)
-    -[x] [Ubicomp13](https://www.repository.cam.ac.uk/handle/1810/266947)
--[x] models
-    -[x] [CNNwithActivityImage](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
-    -[x] [CNNLSTM](https://www.mdpi.com/1424-8220/16/1/115)
-    -[x] [CNNwithStatistics](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)        
-    -[x] StackedAutoencoders(not tested!)for [this](https://ieeexplore.ieee.org/abstract/document/8488496)
-    -[x] NaivePeakDetector
+- [x] dataset readers(You need download raw data and provide the dataset path)
+    - [x] [UCI-HAR](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
+    - [x] [USC-HAD](http://sipi.usc.edu/had/)
+    - [x] [Ubicomp13](https://www.repository.cam.ac.uk/handle/1810/266947)
+- [x] models
+    - [x] [CNNwithActivityImage](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
+    - [x] [CNNLSTM](https://www.mdpi.com/1424-8220/16/1/115)
+    - [x] [CNNwithStatistics](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)        
+    - [x] StackedAutoencoders(not tested!)for [this](https://ieeexplore.ieee.org/abstract/document/8488496)
+    - [x] NaivePeakDetector
 
  ## Background(You can pass this)
  Smart phones are pervasive nowadays and have become important intermediaries of our lives.
