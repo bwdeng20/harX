@@ -17,10 +17,11 @@ if __name__ == "__main__":
 
     jy15cnn22 = JY15CNN2(6)
     # NOTICE:
-    # remember to use the same type optimizer!!! otherwise state_dict of optimizer can't be restored correctly
+    # remember to use a same optimizer!!! otherwise state_dict of optimizer can't be restored correctly
 
     # NOTICE:
-    # to resuming monitoring, please make sure that 'logdir' is the same as when you new a Coach
-    # class to resume training!
+    # to resuming monitoring, please make sure that 'logdir' is the same with what's used at Coach initialization.
     Coach = Coach(jy15cnn22, epochs=100, logdir=r'../logs/test_resuming_monitoring-')
+
+    # coach will automatically find the newest checkpoint file
     Coach.resume(trainloader, cp_file=r"../checkpoints/")

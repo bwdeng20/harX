@@ -21,7 +21,7 @@ if __name__ == "__main__":
     visual_cm(coach.evaluations['confusionMatrix'], classes=testset.activity.values())
     print(c_mat.sum())
     # ----------------------------------------------------------------------------------------------------
-    test_dir = r'D:\DataSets\Activity_Recognition\SensorBased\UCI HAR Dataset\UCI HAR Dataset\test'
+
     testset = UCIHAR(dir=test_dir, transform=Ucihar4Convlstm())
     testloader = DataLoader(testset, batch_size=30)
     net2 = ConvLstm(6, 9)

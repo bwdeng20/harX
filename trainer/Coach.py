@@ -1,14 +1,12 @@
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import torch.optim as optimzoo
 import torch.nn.modules.loss as losszoo
 import os
 import numpy as np
 from utils.evaluations import confusion_mat
 import time
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def find_newest(dire):
@@ -22,7 +20,7 @@ def str2optimizer(optimizer_name):
     """
 
     :param optimizer_name: the name of one optimizer
-    :return: the optimizer class implemented in Pytorch
+    :return: the optimizer class implemented in PyTorch
     """
     if hasattr(optimzoo, optimizer_name):
         return getattr(optimzoo, optimizer_name)
@@ -62,10 +60,14 @@ class Coach(CoachBase):
 
     def __init__(self, model, optimizer='Adam', loss='CrossEntropyLoss',
                  lr=0.001, epochs=10, metrics=None,
-                 cpdir=r"../checkpoints/", logdir=r"../logs/"):
+                 cpdir=r"./checkpoints/", logdir=r"./logs/", device=None):
         super(Coach, self).__init__()
-        self.model = model.to(device)
+        if device is None:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
 
+        self.model = model.to(self.device)
         self.last_epoch = 0
         self.last_loss = 0.0  # the loss of last epoch
         self.last_acc = 0.0
@@ -113,7 +115,7 @@ class Coach(CoachBase):
         else:
             loss_layer = self.loss
 
-        loss_layer.to(device)
+        loss_layer.to(self.device)
         for epoch in range(self.last_epoch + 1, self.epochs + 1):
             begin = time.time()
             epoch_loss = 0.0
@@ -138,7 +140,7 @@ class Coach(CoachBase):
                 batch_loss = loss.item() / batch_size
                 epoch_loss += loss.item()
                 if i % 19 == 0:  # print every 20 mini-batches
-                    print('[epoch %5d,mini-batch %5d] batch_loss: %.5f' %
+                    print('[epoch %5d, mini-batch %5d] batch_loss: %.5f' %
                           (epoch, i + 1, batch_loss))
                 self.writer.add_scalar('Loss/batch', batch_loss, global_step=self.batches)
 
@@ -203,7 +205,7 @@ class Coach(CoachBase):
             loss_layer = str2loss(self.loss)()
         else:
             loss_layer = self.loss
-        loss_layer.to(device)
+        loss_layer.to(self.device)
         LABEL = np.array([]).astype(np.int)
         PRED = np.array([]).astype(np.int)
 
@@ -250,29 +252,30 @@ class Coach(CoachBase):
         need_unpack = 0
         if type(_sample['input']) == tuple or type(_sample['input']) == list:
             need_unpack = 1
-            return tuple(elem.to(device) for elem in _sample['input']), _sample['label'].to(device) - 1, need_unpack
+            return tuple(elem.to(self.device) for elem in _sample['input']), _sample['label'].to(
+                self.device) - 1, need_unpack
         else:
-            return _sample['input'].to(device), _sample['label'].to(device) - 1, need_unpack
+            return _sample['input'].to(self.device), _sample['label'].to(self.device) - 1, need_unpack
 
 
-if __name__ == "__main__":
-    # test for Coach.fit() passed!
-    from utils.datasets import UCIHAR
-    from utils.preprocess import Si2Ai
-    from torch.utils.data import DataLoader
-    from model.MoDeX import JY15CNN2
-
-    ucihar = UCIHAR(transform=Si2Ai(magnitude=True))
-    trainloader = DataLoader(ucihar, batch_size=30, shuffle=True, num_workers=2)
-    dataiter = iter(trainloader)
-    sample = next(dataiter)
-    print(sample['input'].shape)
-    print(sample['label'])
-
-    jy15cnn22 = JY15CNN2(6)
-    jy15cnn22.apply(xavier_init)
-    # NOTICE: to test resuming monitoring, please make sure that 'logdir' is the same as that when you new a Coach
-    # class to resume! A resume example can be found at
-    # Projects/integration_test/ResumeTest.py
-    Coach = Coach(jy15cnn22, epochs=100, logdir=r'../logs/test_resuming_monitoring-')
-    Coach.fit(trainloader)
+# if __name__ == "__main__":
+#     # test for Coach.fit() passed!
+#     from utils.datasets import UCIHAR
+#     from utils.preprocess import Si2Ai
+#     from torch.utils.data import DataLoader
+#     from model.MoDeX import JY15CNN2
+#
+#     ucihar = UCIHAR(transform=Si2Ai(magnitude=True))
+#     trainloader = DataLoader(ucihar, batch_size=30, shuffle=True, num_workers=2)
+#     dataiter = iter(trainloader)
+#     sample = next(dataiter)
+#     print(sample['input'].shape)
+#     print(sample['label'])
+#
+#     jy15cnn22 = JY15CNN2(6)
+#     jy15cnn22.apply(xavier_init)
+#     # NOTICE: to test resuming monitoring, please make sure that 'logdir' is the same as that when you new a Coach
+#     # class to resume! A resume example can be found at
+#     # Projects/integration_test/ResumeTest.py
+#     Coach = Coach(jy15cnn22, epochs=100, logdir=r'../logs/test_resuming_monitoring-')
+#     Coach.fit(trainloader)

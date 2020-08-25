@@ -5,7 +5,10 @@ import torch.optim as optimzoo
 from tqdm import tqdm
 from model.Loss import SpKL,L2norm
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+"""
+Accurate Step Length Estimation for Pedestrian Dead Reckoning Localization Using Stacked Autoencoders
+https://ieeexplore.ieee.org/abstract/document/8488496
+"""
 
 class AutoEnoder(nn.Module):
     def __init__(self, d_in, hidden, acfun=torch.sigmoid):
