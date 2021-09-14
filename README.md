@@ -21,7 +21,7 @@
  tasks such as indoor inertial navigation when GPS are unavailable and healthy cares for the elders living alone.
  
  ## How to use 
- ***Just hack!*** Since I didn't package these stuffs into a python lib, an easy way to use
+ ***Just hack!***  A direct way to use
  these code is to write your own script under `harX` directory. `example1.py` is provided for
  reference and you can run it as easy as:
  ```bash
@@ -38,12 +38,12 @@ matplotlib
 ```
 
 
- ## Some Results
+ ## Some Visualization Results
  You can show the data with some tools in `utils`. 
  
  One sensor data sample coming from [Ubicomp13](https://www.repository.cam.ac.uk/handle/1810/266947)
  ![raw sensor data](./imgs/ubicomp13_sensor_data.png)
- Check something from another perspective.
+ Check it from another perspective.
  ![](./imgs/ubicomp13_sensor_data_spectrum.png)
  
  `ActivityImage` proposed in [Human activity recognition using wearable sensors by deep convolutional neural networks](https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones)
@@ -51,8 +51,4 @@ matplotlib
   
   A confusion matrix of one model's performance on UCI-HAR test dataset.
   ![](./imgs/ConfusionMatrix.png)
-  
-  ## End
-This repository is writen when I began to use python for a project so it's not
-well organized and the code style is bad. You are welcome to reorganize it
-and do whatever you like. 
+
